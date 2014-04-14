@@ -77,7 +77,7 @@ public class Tuple implements Serializable {
      *         be null.
      */
     public RecordId getRecordId() {
-        // some code goes here
+        // FIX
         return null;
     }
 
@@ -88,7 +88,7 @@ public class Tuple implements Serializable {
      *            the new RecordId for this tuple.
      */
     public void setRecordId(RecordId rid) {
-        // some code goes here
+        // FIX
     }
 
     /**
@@ -134,7 +134,25 @@ public class Tuple implements Serializable {
      * where \t is any whitespace, except newline, and \n is a newline
      */
     public String toString() {
-        return "";
+        
+        int index                   = 0;
+        StringBuilder stringBuilder = new StringBuilder();
+        
+        // Format string
+        for(;index < m_fields.capacity(); index++)
+        {
+            // Check if its last element
+            if(index == (m_fields.capacity() + 1))
+            {
+                stringBuilder.append(m_fields.get(index).toString() + "\n");
+            }
+            else
+            {
+                stringBuilder.append(m_fields.get(index).toString() + "\t");
+            }
+        }
+        
+        return stringBuilder.toString();
     }
     
     /**
@@ -143,8 +161,8 @@ public class Tuple implements Serializable {
      * */
     public Iterator<Field> fields()
     {
-        // some code goes here
-        return null;
+        // FIX
+        return m_fields.iterator();
     }
     
     /**
@@ -152,6 +170,14 @@ public class Tuple implements Serializable {
      * */
     public void resetTupleDesc(TupleDesc td)
     {
-        // some code goes here
+        m_td     = td;
+        m_fields = new Vector<Field>(m_td.numFields());
+        
+        // Initialize fields to null
+        for(int i = 0; i < m_td.numFields(); i++)
+        {
+            m_fields.add(i, null);
+        }
+        
     }
 }

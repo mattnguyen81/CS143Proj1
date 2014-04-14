@@ -41,8 +41,8 @@ public class TupleDesc implements Serializable {
      *        that are included in this TupleDesc
      * */
     public Iterator<TDItem> iterator() {
-        // some code goes here
-        return null;
+        // FIX
+        return m_items.iterator();
     }
 
     private static final long serialVersionUID = 1L;
@@ -262,7 +262,7 @@ public class TupleDesc implements Serializable {
         StringBuilder stringBuilder = new StringBuilder();
         
         // Continuously append to StringBuilder
-        for(index = 0; index < m_items.size() - 1; index++)
+        for(; index < m_items.size() - 1; index++)
         {
             stringBuilder.append(m_items.get(index).fieldType.toString() + "(" +
                                  m_items.get(index).fieldName + ")," );
