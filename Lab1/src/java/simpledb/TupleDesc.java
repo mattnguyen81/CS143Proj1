@@ -7,7 +7,7 @@ import java.util.*;
  * TupleDesc describes the schema of a tuple.
  */
 public class TupleDesc implements Serializable {
-
+	
     /**
      * A help class to facilitate organizing the information of each field
      * */
@@ -46,6 +46,11 @@ public class TupleDesc implements Serializable {
     }
 
     private static final long serialVersionUID = 1L;
+    
+    
+    // TupleDesc storage for TDItems
+    private ArrayList<TDItem> m_items = new ArrayList<TDItem>();
+    
 
     /**
      * Create a new TupleDesc with typeAr.length fields with fields of the
@@ -59,7 +64,15 @@ public class TupleDesc implements Serializable {
      *            be null.
      */
     public TupleDesc(Type[] typeAr, String[] fieldAr) {
-        // some code goes here
+    	// Check length of typeAr && fieldAr
+    	if(typeAr.length <= 0 || fieldAr.length <= 0)
+    		throw new RuntimeException("TupleDesc: must contain at least 1 entry");
+    	
+    	// store (type, field name)
+        for(int i = 0; i < typeAr.length; i++)
+        {
+        	this.m_items.add(new TDItem(typeAr[i], fieldAr[i]));
+        }
     }
 
     /**
@@ -71,15 +84,22 @@ public class TupleDesc implements Serializable {
      *            TupleDesc. It must contain at least one entry.
      */
     public TupleDesc(Type[] typeAr) {
-        // some code goes here
+    	// Check length of typeAr
+    	if(typeAr.length <= 0)
+    		throw new RuntimeException("TupleDesc: must contain at least 1 entry");
+    	
+    	// Initialize array with (type, unnamed)
+        for(int i = 0; i < typeAr.length; i++)
+        {
+        	this.m_items.add(new TDItem(typeAr[i], null));
+        }
     }
 
     /**
      * @return the number of fields in this TupleDesc
      */
     public int numFields() {
-        // some code goes here
-        return 0;
+    	return this.m_items.size();
     }
 
     /**
@@ -92,8 +112,14 @@ public class TupleDesc implements Serializable {
      *             if i is not a valid field reference.
      */
     public String getFieldName(int i) throws NoSuchElementException {
-        // some code goes here
-        return null;
+    	
+    	// Checks if valid index
+        if(i >= m_items.size())
+        {
+        	throw new NoSuchElementException();
+        }
+        
+        return m_items.get(i).fieldName;
     }
 
     /**
@@ -107,8 +133,12 @@ public class TupleDesc implements Serializable {
      *             if i is not a valid field reference.
      */
     public Type getFieldType(int i) throws NoSuchElementException {
-        // some code goes here
-        return null;
+    	if(i >= m_items.size())
+    	{
+    		throw new NoSuchElementException();
+    	}
+    	
+    	return m_items.get(i).fieldType;
     }
 
     /**
@@ -121,8 +151,21 @@ public class TupleDesc implements Serializable {
      *             if no field with a matching name is found.
      */
     public int fieldNameToIndex(String name) throws NoSuchElementException {
-        // some code goes here
-        return 0;
+        
+        if(name == null)
+        {
+            throw new NoSuchElementException();
+        }
+        
+    	// Finds if any fields name match
+    	for(int i = 0; i < m_items.size(); i++)
+    	{
+    		if(name.equals(m_items.get(i).fieldName))
+    		{
+    		    return i;
+    		}
+    	}
+    	throw new NoSuchElementException();
     }
 
     /**
@@ -130,8 +173,13 @@ public class TupleDesc implements Serializable {
      *         Note that tuples from a given TupleDesc are of a fixed size.
      */
     public int getSize() {
-        // some code goes here
-        return 0;
+        
+        int size = 0;
+        for(int i = 0; i < m_items.size(); i++)
+        {
+            size += m_items.get(i).fieldType.getLen();
+        }
+        return size;
     }
 
     /**
@@ -145,8 +193,25 @@ public class TupleDesc implements Serializable {
      * @return the new TupleDesc
      */
     public static TupleDesc merge(TupleDesc td1, TupleDesc td2) {
-        // some code goes here
-        return null;
+        
+        Type[] fd_type   = new Type[td1.m_items.size() + td2.m_items.size()];
+        String[] fd_name = new String[td1.m_items.size() + td2.m_items.size()];
+        int index = 0;
+        
+        // Store the field types and field names into 2 separate arrays
+        for(; index < td1.m_items.size(); index++)
+        {
+            fd_type[index] = td1.m_items.get(index).fieldType;
+            fd_name[index] = td1.m_items.get(index).fieldName;
+        }
+        
+        for(int i = 0; i < td2.m_items.size(); i++, index++)
+        {
+            fd_type[index] = td2.m_items.get(i).fieldType;
+            fd_name[index] = td2.m_items.get(i).fieldName;
+        }
+        
+        return new TupleDesc(fd_type, fd_name);
     }
 
     /**
@@ -159,8 +224,24 @@ public class TupleDesc implements Serializable {
      * @return true if the object is equal to this TupleDesc.
      */
     public boolean equals(Object o) {
-        // some code goes here
-        return false;
+        
+        // Check if NULL, not correct object class, or not equal sizes
+        if(o == null                       || 
+           o.getClass() != this.getClass() || 
+           ((TupleDesc) o).getSize() != this.getSize())
+        {
+            return false;
+        }
+
+        for(int i = 0; i < this.m_items.size(); i++)
+        {
+            // Checks if field types are equal
+            if(!m_items.get(i).fieldType.equals(((TupleDesc) o).m_items.get(i).fieldType))
+            {
+                return false;
+            }
+        }
+        return true;
     }
 
     public int hashCode() {
@@ -177,7 +258,20 @@ public class TupleDesc implements Serializable {
      * @return String describing this descriptor.
      */
     public String toString() {
-        // some code goes here
-        return "";
+        int index = 0;
+        StringBuilder stringBuilder = new StringBuilder();
+        
+        // Continuously append to StringBuilder
+        for(index = 0; index < m_items.size() - 1; index++)
+        {
+            stringBuilder.append(m_items.get(index).fieldType.toString() + "(" +
+                                 m_items.get(index).fieldName + ")," );
+        }
+        
+        // Append last item
+        stringBuilder.append(m_items.get(index).fieldType.toString() + "(" +
+                             m_items.get(index).fieldName + ")" );
+        
+        return stringBuilder.toString();
     }
 }
