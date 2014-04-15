@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -17,13 +18,46 @@ import java.util.concurrent.ConcurrentHashMap;
  * @Threadsafe
  */
 public class Catalog {
+    
+    // FIX
+    public static class CatItem implements Serializable {
+        
+        private static final long serialVersionUID = 1L;
+
+        /**
+         * DbFile associated w/ table
+         * */
+        public DbFile m_dbFile;
+        
+        /**
+         * Name of table
+         * */
+        public String m_tableName;
+        
+        /**
+         * Primary key of table
+         * */
+        public String m_primKey;
+
+        public CatItem(DbFile file, String tbName, String pmKey) {
+            m_dbFile    = file;
+            m_tableName = tbName;
+            m_primKey   = pmKey;
+        }
+
+        public String toString() {
+            return m_tableName + "(" + m_primKey + ")";
+        }
+    }
+    
+    private Vector<CatItem> m_tables;
 
     /**
      * Constructor.
      * Creates a new, empty catalog.
      */
     public Catalog() {
-        // some code goes here
+        m_tables = new Vector<CatItem>();
     }
 
     /**
@@ -31,12 +65,31 @@ public class Catalog {
      * This table's contents are stored in the specified DbFile.
      * @param file the contents of the table to add;  file.getId() is the identfier of
      *    this file/tupledesc param for the calls getTupleDesc and getFile
-     * @param name the name of the table -- may be an empty string.  May not be null.  If a name
+     * @param name the name of the table -- may be an empty string.  May not be null.
      * @param pkeyField the name of the primary key field
-     * conflict exists, use the last table to be added as the table for a given name.
+     * If a name conflict exists, use the last table to be added as 
+     *    the table for a given name.
      */
     public void addTable(DbFile file, String name, String pkeyField) {
-        // some code goes here
+        // Check if table name is null
+        if(name == null)
+        {
+            return;
+        }
+        
+        // Check for name conflicts inside catalog
+        for(int i = 0; i < m_tables.size(); i++)
+        {
+            if(m_tables.get(i).m_tableName.equals(name))
+            {
+                m_tables.add(i, new CatItem(file, name, pkeyField));
+                return;
+            }
+        }
+        
+        // Insert into table normally
+        m_tables.add(new CatItem(file, name, pkeyField));
+        return;
     }
 
     public void addTable(DbFile file, String name) {
@@ -59,8 +112,18 @@ public class Catalog {
      * @throws NoSuchElementException if the table doesn't exist
      */
     public int getTableId(String name) throws NoSuchElementException {
-        // some code goes here
-        return 0;
+        // Search table for name match
+        for(int i = 0; i < m_tables.size(); i++)
+        {
+            CatItem ct_item = m_tables.get(i);
+            if(ct_item.m_tableName.equals(name))
+            {
+                return ct_item.m_dbFile.getId();
+            }
+        }
+        
+        // Didn't find table name match
+        throw new NoSuchElementException();
     }
 
     /**
@@ -70,8 +133,18 @@ public class Catalog {
      * @throws NoSuchElementException if the table doesn't exist
      */
     public TupleDesc getTupleDesc(int tableid) throws NoSuchElementException {
-        // some code goes here
-        return null;
+        // Look for tableid match
+        for(int i = 0; i < m_tables.size(); i++)
+        {
+            DbFile db_file = m_tables.get(i).m_dbFile;
+            if(db_file.getId() == tableid)
+            {
+                return db_file.getTupleDesc();
+            }
+        }
+        
+        // Didn't find tableid match
+        throw new NoSuchElementException();
     }
 
     /**
@@ -81,28 +154,54 @@ public class Catalog {
      *     function passed to addTable
      */
     public DbFile getDatabaseFile(int tableid) throws NoSuchElementException {
-        // some code goes here
-        return null;
+        // Look for tableid match
+        for(int i = 0; i < m_tables.size(); i++)
+        {
+            DbFile db_file = m_tables.get(i).m_dbFile;
+            if(db_file.getId() == tableid)
+            {
+                return db_file;
+            }
+        }
+        
+        // Didn't find tableid match
+        throw new NoSuchElementException();
     }
 
     public String getPrimaryKey(int tableid) {
-        // some code goes here
-        return null;
+        // Look for tableid match
+        for(int i = 0; i < m_tables.size(); i++)
+        {
+            CatItem ct_item = m_tables.get(i);
+            if(ct_item.m_dbFile.getId() == tableid)
+            {
+                return ct_item.m_primKey;
+            }
+        }
+        
+        // Didn't find tableid match
+        throw new NoSuchElementException();
     }
-
-    public Iterator<Integer> tableIdIterator() {
-        // some code goes here
-        return null;
-    }
-
+    
     public String getTableName(int id) {
-        // some code goes here
-        return null;
+        // Look for tableid match
+        for(int i = 0; i < m_tables.size(); i++)
+        {
+            CatItem ct_item = m_tables.get(i);
+            if(ct_item.m_dbFile.getId() == id)
+            {
+                return ct_item.m_tableName;
+            }
+        }
+        
+        // Didn't find tableid match
+        throw new NoSuchElementException();
     }
     
     /** Delete all tables from the catalog */
     public void clear() {
-        // some code goes here
+        m_tables = new Vector<CatItem>();
+        return;
     }
     
     /**
@@ -159,5 +258,40 @@ public class Catalog {
             System.exit(0);
         }
     }
+
+    public Iterator<Integer> tableIdIterator() {
+        return new CatalogIterator();
+    }
+    
+    // FIX
+    private class CatalogIterator implements Iterator<Integer>{
+        int position = 0;
+
+        @Override
+        public boolean hasNext() {
+            return position < m_tables.size();
+        }
+
+        @Override
+        public Integer next() {
+            // Check if current position is valid
+            if(position < m_tables.size())
+            {
+                Integer curr = m_tables.get(position).m_dbFile.getId();
+                ++position;
+                return curr;
+            }
+            // FIX
+            return null;
+        }
+
+        @Override
+        public void remove() {
+            // FIX
+            return;
+        }
+    }
+
+
 }
 
