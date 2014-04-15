@@ -1,8 +1,8 @@
 package simpledb;
 
 import java.io.*;
-
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.HashMap;
+import java.util.NoSuchElementException;
 
 /**
  * BufferPool manages the reading and writing of pages into memory from
@@ -25,6 +25,12 @@ public class BufferPool {
     other classes. BufferPool should use the numPages argument to the
     constructor instead. */
     public static final int DEFAULT_PAGES = 50;
+    
+    
+    // Max # of pages
+    private int                    m_maxPages;
+    // Hashmap that stores pages
+    private HashMap<Integer, Page> m_pages;
 
     /**
      * Creates a BufferPool that caches up to numPages pages.
@@ -32,7 +38,8 @@ public class BufferPool {
      * @param numPages maximum number of pages in this buffer pool.
      */
     public BufferPool(int numPages) {
-        // some code goes here
+        m_maxPages = numPages;
+        m_pages    = new HashMap<Integer, Page>();
     }
     
     public static int getPageSize() {
@@ -61,8 +68,36 @@ public class BufferPool {
      */
     public  Page getPage(TransactionId tid, PageId pid, Permissions perm)
         throws TransactionAbortedException, DbException {
-        // some code goes here
-        return null;
+        
+        // Checks if PageId is in BufferPool
+        if(m_pages.containsKey(pid.hashCode()))
+        {
+            return m_pages.get(pid.hashCode());
+        }
+        // FIX
+        if(m_pages.size() == m_maxPages)
+        {
+            throw new DbException("BufferPool: Haven't implemented eviction");
+        }
+        
+        // Find page in Database
+        Catalog c_log  = Database.getCatalog();
+        DbFile  file   = null;
+        Page    t_page = null;
+        
+        // getDatabaseFile throws exception
+        try{
+            file   = c_log.getDatabaseFile(pid.getTableId());
+        }
+        catch(NoSuchElementException e){
+            throw new RuntimeException("BufferPool: Couldn't find DbFile in catalog");
+        }
+
+        // Insert Page into BufferPool
+        t_page = file.readPage(pid);
+        m_pages.put(t_page.hashCode(), t_page);
+        
+        return t_page;
     }
 
     /**
