@@ -2,6 +2,11 @@ package simpledb;
 
 /** Unique identifier for HeapPage objects. */
 public class HeapPageId implements PageId {
+    
+    // Table ID that the specific HeapPage represents
+    int m_tableId;
+    // Page # in the table
+    int m_pgNo;
 
     /**
      * Constructor. Create a page id structure for a specific page of a
@@ -11,13 +16,13 @@ public class HeapPageId implements PageId {
      * @param pgNo The page number in that table.
      */
     public HeapPageId(int tableId, int pgNo) {
-        // some code goes here
+        m_tableId = tableId;
+        m_pgNo    = pgNo;
     }
 
     /** @return the table associated with this PageId */
     public int getTableId() {
-        // some code goes here
-        return 0;
+        return m_tableId;
     }
 
     /**
@@ -25,8 +30,7 @@ public class HeapPageId implements PageId {
      *   this PageId
      */
     public int pageNumber() {
-        // some code goes here
-        return 0;
+        return m_pgNo;
     }
 
     /**
@@ -36,8 +40,11 @@ public class HeapPageId implements PageId {
      * @see BufferPool
      */
     public int hashCode() {
-        // some code goes here
-        throw new UnsupportedOperationException("implement this");
+        Integer tableNum = new Integer(m_tableId);
+        Integer pgNum    = new Integer(m_pgNo);
+        int result       = Integer.parseInt(tableNum.toString() + pgNum.toString());
+        
+        return result;
     }
 
     /**
@@ -48,8 +55,24 @@ public class HeapPageId implements PageId {
      *   ids are the same)
      */
     public boolean equals(Object o) {
-        // some code goes here
+        // Check if NULL, not correct object class
+        if(o == null || !(o instanceof PageId))
+        {
+            return false;
+        }
+        
+        // Cast o into pageId
+        PageId other = ((PageId) o);
+        // Check if pageNum and tableId equality
+        if(this.m_tableId == other.getTableId() &&
+           this.m_pgNo    == other.pageNumber())
+        {
+            return true;
+        }
+        
         return false;
+        
+        
     }
 
     /**

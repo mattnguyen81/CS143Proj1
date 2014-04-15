@@ -9,6 +9,11 @@ import java.io.Serializable;
 public class RecordId implements Serializable {
 
     private static final long serialVersionUID = 1L;
+    
+    // page that tuple resides in
+    PageId m_pageId;
+    // tuple number in the page
+    int m_tupleNum;
 
     /**
      * Creates a new RecordId referring to the specified PageId and tuple
@@ -20,23 +25,22 @@ public class RecordId implements Serializable {
      *            the tuple number within the page.
      */
     public RecordId(PageId pid, int tupleno) {
-        // some code goes here
+        m_pageId    = pid;
+        m_tupleNum  = tupleno; 
     }
 
     /**
      * @return the tuple number this RecordId references.
      */
     public int tupleno() {
-        // some code goes here
-        return 0;
+        return m_tupleNum;
     }
 
     /**
      * @return the page id this RecordId references.
      */
     public PageId getPageId() {
-        // some code goes here
-        return null;
+        return m_pageId;
     }
 
     /**
@@ -47,8 +51,22 @@ public class RecordId implements Serializable {
      */
     @Override
     public boolean equals(Object o) {
-        // some code goes here
-        throw new UnsupportedOperationException("implement this");
+        // Check if NULL, not correct object class
+        if(o == null || !(o instanceof RecordId))
+        {
+            return false;
+        }
+        
+        // Cast object into RecordId
+        RecordId other = (RecordId) o;
+        // Check if equal
+        if(this.m_tupleNum == other.m_tupleNum &&
+           this.m_pageId.equals(other.m_pageId))
+        {
+            return true;
+        }
+        
+        return false;
     }
 
     /**
@@ -59,9 +77,12 @@ public class RecordId implements Serializable {
      */
     @Override
     public int hashCode() {
-        // some code goes here
-        throw new UnsupportedOperationException("implement this");
-
+        Integer h_code = m_pageId.hashCode();
+        Integer tupNum = m_tupleNum;
+        
+        // Concat pageId hashcode + tupNum
+        int result = Integer.parseInt(h_code.toString() + tupNum.toString());
+        return result;
     }
 
 }
