@@ -13,7 +13,7 @@ public class RecordId implements Serializable {
     // page that tuple resides in
     PageId m_pageId;
     // tuple number in the page
-    int m_tupleNum;
+    int    m_tupleNum;
 
     /**
      * Creates a new RecordId referring to the specified PageId and tuple

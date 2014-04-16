@@ -15,13 +15,12 @@ public class Tuple implements Serializable {
     private static final long serialVersionUID = 1L;
     
     // Stores TupleDesc associate w/ schema
-    private TupleDesc m_td;
-    
+    private TupleDesc     m_td;
+    // Record of tuple on specific page
+    private RecordId      m_record;
     // Stores values of fields
     private Vector<Field> m_fields;
     
-    // FIX
-    private RecordId  m_record;
 
     /**
      * Create a new tuple with the specified schema (type).
@@ -36,6 +35,7 @@ public class Tuple implements Serializable {
             throw new RuntimeException("Tuple: must contain at least 1 entry");
         
         m_td     = td;
+        m_record = null;
         m_fields = new Vector<Field>(m_td.numFields());
         
         // Initialize fields to null
@@ -45,24 +45,8 @@ public class Tuple implements Serializable {
         }
         
         
-        /*
-        // Initialize fields to either int/string
-        for(int i = 0; i < m_td.numFields(); i++)
-        {
-            Type fd_type = m_td.getFieldType(i);
-            switch(fd_type)
-            {
-            case STRING_TYPE:
-                m_fields.add(new StringField("", fd_type.getLen()));
-                break;
-            case INT_TYPE:
-                m_fields.add(new IntField(0));
-                break;
-            default:
-                throw new RuntimeException("Tuple: Unknown field");
-            }
-        }
-        */
+        
+        
     }
 
     /**
@@ -77,8 +61,7 @@ public class Tuple implements Serializable {
      *         be null.
      */
     public RecordId getRecordId() {
-        // FIX
-        return null;
+        return m_record;
     }
 
     /**
@@ -88,7 +71,8 @@ public class Tuple implements Serializable {
      *            the new RecordId for this tuple.
      */
     public void setRecordId(RecordId rid) {
-        // FIX
+        m_record = rid;
+        return;
     }
 
     /**
@@ -161,7 +145,6 @@ public class Tuple implements Serializable {
      * */
     public Iterator<Field> fields()
     {
-        // FIX
         return m_fields.iterator();
     }
     
