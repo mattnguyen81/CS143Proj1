@@ -51,7 +51,7 @@ public class HeapPage implements Page {
         this.tuples         = new Tuple[numSlots];
         // Datastream to read data
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(data));
-        
+                
         // Reads byte sized data into header array
         for (int i=0; i<header.length; i++)
         {
