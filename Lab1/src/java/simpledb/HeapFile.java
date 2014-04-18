@@ -134,9 +134,97 @@ public class HeapFile implements DbFile {
 
     // see DbFile.java for javadocs
     public DbFileIterator iterator(TransactionId tid) {
-        // some code goes here
-        return null;
+        return new HeapFileIterator(tid);
     }
+    
+    private class HeapFileIterator implements DbFileIterator{
+        // Current Page that iterator is on
+        int             num_pg;
+        // Determine if iter is open
+        boolean         open;
+        
+        // TransactionId for iterator
+        TransactionId   m_tid;
+        // Current Page iter
+        Iterator<Tuple> it_curr;
+        
+        
+        public HeapFileIterator(TransactionId tid)
+        {
+            m_tid   = tid;
+            open    = false;
+            num_pg  = 0;
+            it_curr = null;
+        }
 
+        @Override
+        public void open() throws DbException, TransactionAbortedException {
+            open = true;
+        }
+
+        @Override
+        public boolean hasNext() throws DbException,
+                TransactionAbortedException {
+            // Check if iterator is open or closed
+            if(!open)
+            {
+                return false;
+            }
+
+            // Load first page if null
+            if(it_curr == null)
+            {
+                HeapPageId hp_id = new HeapPageId(m_file.getAbsoluteFile().hashCode(),
+                                                  num_pg);
+                HeapPage   hp_pg = (HeapPage) Database.getBufferPool().getPage(m_tid, 
+                                                                        hp_id, null);
+                // Initialize first page iterator
+                it_curr = hp_pg.iterator();
+                num_pg++;
+            }
+            // Try to load new page if no tuples left
+            while(!it_curr.hasNext())
+            {
+                if(num_pg >= (m_data.length/Database.getBufferPool().getPageSize()))
+                {
+                    return false;
+                }
+                
+                HeapPageId hp_id = new HeapPageId(m_file.getAbsoluteFile().hashCode(),
+                        num_pg);
+                HeapPage   hp_pg = (HeapPage) Database.getBufferPool().getPage(m_tid, 
+                                              hp_id, null);
+                
+                it_curr = hp_pg.iterator();
+                num_pg++;
+            }
+            return true;       
+        }
+
+        @Override
+        public Tuple next() throws DbException, TransactionAbortedException,
+                NoSuchElementException {
+            if(!open)
+            {
+                throw new NoSuchElementException();
+            }
+            if(this.hasNext())
+            {
+                return it_curr.next();
+            }
+            return null;
+        }
+
+        @Override
+        public void rewind() throws DbException, TransactionAbortedException {
+            num_pg  = 0;
+            it_curr = null;
+        }
+
+        @Override
+        public void close() {
+            open = false;
+        }
+    }
 }
 
