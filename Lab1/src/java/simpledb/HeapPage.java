@@ -326,14 +326,7 @@ public class HeapPage implements Page {
     public boolean isSlotUsed(int i) {
         int h_pos = 0;
         // Calculate which byte it would be in
-        if(i % 8 == 0)
-        {
-            h_pos = i/8;
-        }
-        else
-        {
-            h_pos = (int) Math.floor(i/8);
-        }
+        h_pos = i/8;
         
         // Fix
         // Check if h_pos is valid

@@ -4,7 +4,6 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -18,46 +17,28 @@ import java.util.concurrent.ConcurrentHashMap;
  * @Threadsafe
  */
 public class Catalog {
-    
-    // FIX
-    public static class CatItem implements Serializable {
-        
-        private static final long serialVersionUID = 1L;
 
-        /**
-         * DbFile associated w/ table
-         * */
-        public DbFile m_dbFile;
-        
-        /**
-         * Name of table
-         * */
-        public String m_tableName;
-        
-        /**
-         * Primary key of table
-         * */
-        public String m_primKey;
+    // <ID, Table>
+    ConcurrentHashMap<Integer, DbFileWithNames> tables;
 
-        public CatItem(DbFile file, String tbName, String pmKey) {
-            m_dbFile    = file;
-            m_tableName = tbName;
-            m_primKey   = pmKey;
-        }
+    // To store the file, name and pkeyField
+    private class DbFileWithNames {
+        public final String name, pkeyField;
+        public final DbFile file;
 
-        public String toString() {
-            return m_tableName + "(" + m_primKey + ")";
+        public DbFileWithNames(DbFile file, String name, String pkeyField) {
+            this.file = file;
+            this.name = name;
+            this.pkeyField = pkeyField;
         }
     }
-    
-    private Vector<CatItem> m_tables;
 
     /**
      * Constructor.
      * Creates a new, empty catalog.
      */
     public Catalog() {
-        m_tables = new Vector<CatItem>();
+        tables = new ConcurrentHashMap<Integer, DbFileWithNames>();
     }
 
     /**
@@ -65,31 +46,16 @@ public class Catalog {
      * This table's contents are stored in the specified DbFile.
      * @param file the contents of the table to add;  file.getId() is the identfier of
      *    this file/tupledesc param for the calls getTupleDesc and getFile
-     * @param name the name of the table -- may be an empty string.  May not be null.
+     * @param name the name of the table -- may be an empty string.  May not be null.  If a name
      * @param pkeyField the name of the primary key field
-     * If a name conflict exists, use the last table to be added as 
-     *    the table for a given name.
+     * conflict exists, use the last table to be added as the table for a given name.
      */
     public void addTable(DbFile file, String name, String pkeyField) {
-        // Check if table name is null
-        if(name == null)
-        {
+        // some code goes here
+        if (name == null || pkeyField == null)
             return;
-        }
-        
-        // Check for name conflicts inside catalog
-        for(int i = 0; i < m_tables.size(); i++)
-        {
-            if(m_tables.get(i).m_tableName.equals(name))
-            {
-                m_tables.add(i, new CatItem(file, name, pkeyField));
-                return;
-            }
-        }
-        
-        // Insert into table normally
-        m_tables.add(new CatItem(file, name, pkeyField));
-        return;
+
+        tables.put(file.getId(), new DbFileWithNames(file, name, pkeyField));
     }
 
     public void addTable(DbFile file, String name) {
@@ -112,17 +78,17 @@ public class Catalog {
      * @throws NoSuchElementException if the table doesn't exist
      */
     public int getTableId(String name) throws NoSuchElementException {
-        // Search table for name match
-        for(int i = 0; i < m_tables.size(); i++)
-        {
-            CatItem ct_item = m_tables.get(i);
-            if(ct_item.m_tableName.equals(name))
-            {
-                return ct_item.m_dbFile.getId();
-            }
-        }
+        // Has to enumerate over all values since name isn't the key
+        if (name == null)
+            throw new NoSuchElementException();
         
-        // Didn't find table name match
+        Enumeration<DbFileWithNames> hashValues = tables.elements();
+
+        while (hashValues.hasMoreElements()){
+        	DbFileWithNames cur = hashValues.nextElement();
+            if (cur.name.equals(name))
+            	return cur.file.getId();
+        }
         throw new NoSuchElementException();
     }
 
@@ -133,18 +99,11 @@ public class Catalog {
      * @throws NoSuchElementException if the table doesn't exist
      */
     public TupleDesc getTupleDesc(int tableid) throws NoSuchElementException {
-        // Look for tableid match
-        for(int i = 0; i < m_tables.size(); i++)
-        {
-            DbFile db_file = m_tables.get(i).m_dbFile;
-            if(db_file.getId() == tableid)
-            {
-                return db_file.getTupleDesc();
-            }
-        }
-        
-        // Didn't find tableid match
-        throw new NoSuchElementException();
+        DbFileWithNames res = tables.get(tableid);
+        if (res == null)
+            throw new NoSuchElementException();
+
+        return res.file.getTupleDesc();
     }
 
     /**
@@ -154,54 +113,37 @@ public class Catalog {
      *     function passed to addTable
      */
     public DbFile getDatabaseFile(int tableid) throws NoSuchElementException {
-        // Look for tableid match
-        for(int i = 0; i < m_tables.size(); i++)
-        {
-            DbFile db_file = m_tables.get(i).m_dbFile;
-            if(db_file.getId() == tableid)
-            {
-                return db_file;
-            }
-        }
-        
-        // Didn't find tableid match
-        throw new NoSuchElementException();
+        DbFileWithNames res = tables.get(tableid);
+        if (res == null)
+            throw new NoSuchElementException();
+
+        return res.file;
     }
 
     public String getPrimaryKey(int tableid) {
-        // Look for tableid match
-        for(int i = 0; i < m_tables.size(); i++)
-        {
-            CatItem ct_item = m_tables.get(i);
-            if(ct_item.m_dbFile.getId() == tableid)
-            {
-                return ct_item.m_primKey;
-            }
-        }
-        
-        // Didn't find tableid match
-        throw new NoSuchElementException();
+        DbFileWithNames res = tables.get(tableid);
+        if (res == null)
+            throw new NoSuchElementException();
+
+        return res.pkeyField;
     }
-    
+
+    public Iterator<Integer> tableIdIterator() {
+        // The tableids are the keys
+        return tables.keySet().iterator();
+    }
+
     public String getTableName(int id) {
-        // Look for tableid match
-        for(int i = 0; i < m_tables.size(); i++)
-        {
-            CatItem ct_item = m_tables.get(i);
-            if(ct_item.m_dbFile.getId() == id)
-            {
-                return ct_item.m_tableName;
-            }
-        }
-        
-        // Didn't find tableid match
-        throw new NoSuchElementException();
+        DbFileWithNames res = tables.get(id);
+        if (res == null)
+            throw new NoSuchElementException();
+
+        return res.name;
     }
     
     /** Delete all tables from the catalog */
     public void clear() {
-        m_tables = new Vector<CatItem>();
-        return;
+        tables.clear();
     }
     
     /**
@@ -258,40 +200,5 @@ public class Catalog {
             System.exit(0);
         }
     }
-
-    public Iterator<Integer> tableIdIterator() {
-        return new CatalogIterator();
-    }
-    
-    // FIX
-    private class CatalogIterator implements Iterator<Integer>{
-        int position = 0;
-
-        @Override
-        public boolean hasNext() {
-            return position < m_tables.size();
-        }
-
-        @Override
-        public Integer next() {
-            // Check if current position is valid
-            if(position < m_tables.size())
-            {
-                Integer curr = m_tables.get(position).m_dbFile.getId();
-                ++position;
-                return curr;
-            }
-            // FIX
-            return null;
-        }
-
-        @Override
-        public void remove() {
-            // FIX
-            return;
-        }
-    }
-
-
 }
 

@@ -172,7 +172,8 @@ public class HeapFile implements DbFile {
                 HeapPageId hp_id = new HeapPageId(m_file.getAbsoluteFile().hashCode(),
                                                   num_pg);
                 HeapPage   hp_pg = (HeapPage) Database.getBufferPool().getPage(m_tid, 
-                                                                        hp_id, null);
+                                                                               hp_id, 
+                                                                               Permissions.READ_ONLY);
                 // Initialize first page iterator
                 it_curr = hp_pg.iterator();
                 num_pg++;

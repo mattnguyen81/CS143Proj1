@@ -43,10 +43,6 @@ public class Tuple implements Serializable {
         {
             m_fields.add(i, null);
         }
-        
-        
-        
-        
     }
 
     /**
