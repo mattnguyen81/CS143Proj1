@@ -95,7 +95,7 @@ public class BufferPool {
 
         // Insert Page into BufferPool
         t_page = file.readPage(pid);
-        m_pages.put(t_page.hashCode(), t_page);
+        m_pages.put(pid.hashCode(), t_page);
         
         return t_page;
     }

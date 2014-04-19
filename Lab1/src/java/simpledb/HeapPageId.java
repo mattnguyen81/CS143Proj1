@@ -40,10 +40,8 @@ public class HeapPageId implements PageId {
      * @see BufferPool
      */
     public int hashCode() {
-        Integer tableNum = new Integer(m_tableId);
-        Integer pgNum    = new Integer(m_pgNo);
-        int     result       = (int) Long.parseLong(tableNum.toString() + pgNum.toString());
-        
+        int     result   = (int) Long.parseLong(Long.toString(m_tableId) + 
+                                                Long.toString(m_pgNo));
         return result;
     }
 
